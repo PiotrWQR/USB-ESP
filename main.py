@@ -12,19 +12,6 @@ from _queue import SimpleQueue
 import esptool
 
 
-class CCASettings:
-    def __init__(self):
-        self.MinBackoffExp = 0
-        self.MaxBackoffExp = 0
-        self.MaxBackoffRetries = 0
-
-    def get_settings(self):
-        self.MinBackoffExp = 3
-
-    def set_settings(self):
-        self.MinBackoffExp = 0
-
-
 class Color(QWidget):
     def __init__(self, color):
         super().__init__()
@@ -41,43 +28,11 @@ def clicked():
 class MyMainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.port = "COM19"
-
-        # esptool.main()
-        # esp = esptool.ESPLoader('COM19')
-        # print(esp)
-        # esptool.run(esp)
-        # esptool.read_mac(esp)
-        # return
-
-        try:
-            ser = serial.Serial(self.port, 115200, timeout=0,
-                                parity=serial.PARITY_EVEN, rtscts=False,
-                                stopbits=1)
-        except serial.SerialException:
-            self.show_error_window("Nie udało się znaleźć portu")
-            return
-        except:
-            self.show_error_window("Wystąpił błąd: \n" + str(NameError))
-            return
-        sio = io.TextIOWrapper(io.BufferedRWPair(ser, ser))
-
-
-        try:
-            while True:
-                if ser.in_waiting:
-                    #data = sio.readline().
-                    data = sio.readline().encode(encoding='utf-8', errors='ignore').strip()
-                    print(f"Odebrano: {data}")
-        except KeyboardInterrupt:
-            print("Zakończono odbiór.")
-        finally:
-            ser.close()
 
         self.setWindowTitle("Ustawienia koordynatora")
         self.layout = QHBoxLayout()
         self.attach_cca_layout()
-
+        self.attach_sending_settings_window()
         container = QWidget()
         container.setLayout(self.layout)
         self.setCentralWidget(container)
@@ -101,6 +56,7 @@ class MyMainWindow(QMainWindow):
 
     def attach_cca_layout(self):
         layout = QVBoxLayout()
+        header_label = QLabel("Ustawienia CA/CSMA")
         bemin_label = QLabel("Minimalna ekspotencja odwrotu")
         bemax_label = QLabel("Maksymalna ekspotencja odwrotu")
         retries_label = QLabel("Maksymalna liczba prób")
@@ -116,6 +72,35 @@ class MyMainWindow(QMainWindow):
         layout.addWidget(retries_label)
         layout.addWidget(retries_edit)
         layout.addWidget(cca_button)
+
+        self.layout.addLayout(layout)
+
+    def attach_sending_settings_window(self):
+        layout = QVBoxLayout()
+        header_label = QLabel("Ustawienia żądań")
+        repeats_label = QLabel("Powtórzenia")
+        dest_addr_label = QLabel("Adres docelowy (szesnastkowy)")
+        delay_label = QLabel("Przerwa między żądaniami")
+        repeats_edit = QLineEdit()
+        dest_addr_edit = QLineEdit()
+        delay_edit = QLineEdit()
+        button = QPushButton()
+        button.setText("Zatwierź nowe parametry")
+        layout.addWidget(header_label)
+        layout.addWidget(repeats_label)
+        layout.addWidget(repeats_edit)
+        layout.addWidget(dest_addr_label)
+        layout.addWidget(dest_addr_edit)
+        layout.addWidget(delay_label)
+        layout.addWidget(delay_edit)
+        layout.addWidget(button)
+        self.layout.addLayout(layout)
+
+    def attach_topology_window(self):
+        layout = QVBoxLayout()
+        header_label = QLabel("Topologia")
+        neightbours_label = QLabel("Sąsiedzi")
+
 
         self.layout.addLayout(layout)
 
