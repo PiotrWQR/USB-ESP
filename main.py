@@ -31,10 +31,6 @@ class Color(QWidget):
         self.setPalette(palette)
 
 
-def clicked():
-    print("clicked")
-
-
 class MyMainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -56,18 +52,12 @@ class MyMainWindow(QMainWindow):
         self.attach_cca_layout()
         self.attach_sending_settings_window()
         self.show_tables()
+        self.attach_topology()
         container = QWidget()
         container.setLayout(self.layout)
         self.setCentralWidget(container)
         self.setLayout(self.layout)
         self.show()
-        # self.setContextMenuPolicy(Qt.CustomContextMenu)
-        # self.customContextMenuRequested.connect(self.on_context_menu)
-    def on_context_menu(self, pos):
-        context = QMenu(self)
-        context.addAction(QAction("test 1", self))
-        context.addAction(QAction("test 2", self))
-        context.exec(self.mapToGlobal(pos))
 
     def show_error_window(self, text):
         self.setWindowTitle("Bład")
@@ -149,6 +139,14 @@ class MyMainWindow(QMainWindow):
         json_str = self.ser.readline()
         self.handle_response(json_str)
 
+    def get_topology(self):
+        request = {
+            "request_type": 1,
+        }
+        self.ser.write(json.dumps(request).encode("utf-8"))
+        json_str = self.ser.readline()
+        self.handle_response(json_str)
+
     def set_cca_data(self):
         request = dict()
         request['request_type'] = request_types['set_cca']
@@ -159,11 +157,11 @@ class MyMainWindow(QMainWindow):
         self.ser.write(json_str+b"\n")
         self.get_cca_data()
 
-    def attach_topology_window(self):
+    def attach_topology(self):
         layout = QVBoxLayout()
         header_label = QLabel("Topologia")
-
-
+        layout.addWidget(header_label)
+        layout.addWidget(self.topology_label)
         self.layout.addLayout(layout)
 
     def set_sending_settings(self):
@@ -197,6 +195,7 @@ class MyMainWindow(QMainWindow):
             self.delay_edit.setText(str(json_obj['delay_ms']))
         elif json_obj["information_type"] == 1:
             print("tu bedzie topologia")
+            self.topology_label.setText(json_str)
         elif json_obj["information_type"] == 4:
             text = "Dane sąsiadów koordynatora:\n"
             for neighbour in json_obj["neighbors"]:
