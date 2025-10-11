@@ -20,17 +20,17 @@ request_types = {
 }
 
 device_types = {
-    0: "coordinator",
+    0: "koordynator",
     1: "router",
-    2: "end device"
+    2: "urządzenie brzegowe"
 }
 relationship_type = {
-    0: "partner",
-    1: "child",
-    2: "sibling",
-    3: "none ",
-    4: "previous child",
-    5: "unauthenticated child"
+    0: "rodzic",
+    1: "dziecko",
+    2: "rodzeństwo",
+    3: "żadne",
+    4: "poprzednie dziecko",
+    5: "nieautoryzowane dziecko"
 }
 
 
@@ -86,8 +86,8 @@ class MyMainWindow(QMainWindow):
         self.show()
         self.update_topology_tables()
 
-        handle = threading.Thread(target=self.read_and_handle)
-        handle.start()
+        self.handle = threading.Thread(target=self.read_and_handle)
+        self.handle.start()
 
     def attach_transmission_layout(self):
         layout = QVBoxLayout()
@@ -163,13 +163,9 @@ class MyMainWindow(QMainWindow):
 
     def update_topology_tables(self):
         self.get_msg_settings()
-        time.sleep(0.1)
         self.get_tables()
-        time.sleep(0.1)
         self.get_topology()
-        time.sleep(0.1)
         self.get_nwk_data()
-        time.sleep(0.1)
         self.get_transmision_data()
 
 
@@ -184,6 +180,7 @@ class MyMainWindow(QMainWindow):
         layout.setAlignment(Qt.AlignTop)
         button = QPushButton()
         button.setText("Zatwierź nowe parametry")
+        button.pressed.connect(self.set_sending_settings)
         layout.addWidget(header_label)
         layout.addWidget(repeats_label)
         layout.addWidget(self.repeats_edit)
@@ -267,8 +264,6 @@ class MyMainWindow(QMainWindow):
         request['payload_size'] = int(self.payload_size_edit.text())
         request_json = json.dumps(request).encode("utf-8")
         self.ser.write(request_json)
-        response = self.ser.readline()
-        self.handle_response(response)
 
     def handle_response(self, json_str):
         json_obj = json.loads(json_str.strip(b'\n'))
@@ -282,14 +277,35 @@ class MyMainWindow(QMainWindow):
             dlg.exec()
         elif json_obj["information_type"] == 1:
             text = json.dumps(json_obj, skipkeys=True, indent=2)
+            print(text)
             container = QVBoxLayout()
-            for router in json_obj:
-                if router == "information_type":
-                    continue
-                container.addWidget(QLabel(router))
-                sub_container = QVBoxLayout()
-                sub_container.addWidget(QLabel(json_obj[router]))
-                sub_container.addWidget(QLabel(json_obj[router]))
+            for rd in json_obj:
+                print(rd)
+                obj = json_obj[rd]
+                neighbors = rd["neighbors"]
+                routes = rd["routes"]
+                for n in neighbors:
+                    sub_container = QVBoxLayout()
+                    sub_container.addWidget(QLabel("Adres ieee: "))
+                    sub_container.addWidget(QLabel(n["iee_addr"]))
+                    sub_container.addWidget(QLabel("Adres krótki: "))
+                    sub_container.addWidget(QLabel(n["short_addr"]))
+                    sub_container.addWidget(QLabel("LQI: "))
+                    sub_container.addWidget(QLabel(n["lqi"]))
+                    sub_container.addWidget(QLabel("RSSI: "))
+                    sub_container.addWidget(QLabel(n["rssi"]))
+                    sub_container.addWidget(QLabel("Koszt: "))
+                    sub_container.addWidget(QLabel(n["outgoing_cost"]))
+                    sub_container.addWidget(QLabel("Relacja: "))
+                    sub_container.addWidget(QLabel(relationship_type[n["relationship"]]))
+                    container.addWidget(sub_container)
+                for r in routes:
+                    sub_container = QVBoxLayout()
+                    sub_container.addWidget("Adres docelowy: ")
+                    sub_container.addWidget(r["dest_addr"])
+                    sub_container.addWidget("Następny węzeł: ")
+                    sub_container.addWidget(r["next_hop"])
+
             self.layout.addLayout(container)
         elif json_obj['information_type'] == 2:
             self.bemin_edit.setText(str(json_obj['csma_min_be']))
@@ -306,7 +322,7 @@ class MyMainWindow(QMainWindow):
                 text += " Adres ieee: " + neighbour["ieee_addr"] + "\n"
                 text += "   Adres krótki: " + neighbour["short_addr"] + "\n"
                 text += "   Typ urzadzenia: " + device_types[neighbour["device_type"]] + "\n"
-                text += "   Typ relacji: " + str(neighbour["relationship"]) + "\n"
+                text += "   Typ relacji: " + relationship_type[neighbour["relationship"]] + "\n"
                 text += "   RSSI: " + str(neighbour["rssi"]) + "\n"
                 text += "   LQI: " + str(neighbour["lqi"]) + "\n"
                 text += "   Koszt: " + str(neighbour["outgoing_cost"]) + "\n"
@@ -333,3 +349,6 @@ window = MyMainWindow()
 window.show()
 
 app.exec()
+
+window.ser.close()
+
