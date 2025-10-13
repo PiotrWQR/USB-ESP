@@ -47,7 +47,7 @@ class MyMainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.ser = serial.Serial("COM24", 115200, rtscts=False)
+        self.ser = serial.Serial("COM4", 115200, rtscts=False)
         print("0")
         self.setWindowTitle("Ustawienia koordynatora")
         self.layout = QHBoxLayout()
@@ -64,9 +64,7 @@ class MyMainWindow(QMainWindow):
         self.nwk_panid = QLabel()
         self.nwk_channel = QLabel()
         self.adres = QLabel()
-        self.transmion_start = QLabel()
-        self.transmion_end = QLabel()
-        self.transmion_duration_time = QLabel()
+        self.transmision_layout = QVBoxLayout()
         print("0.5")
         self.attach_cca_layout()
         print("1")
@@ -90,16 +88,10 @@ class MyMainWindow(QMainWindow):
         self.handle.start()
 
     def attach_transmission_layout(self):
-        layout = QVBoxLayout()
         header_label = QLabel("Dane transmisji")
-        layout.setAlignment(Qt.AlignTop)
-        layout.addWidget(header_label)
-        layout.addWidget(self.adres)
-        layout.addWidget(self.transmion_start)
-        layout.addWidget(self.transmion_end)
-        layout.addWidget(self.transmion_duration_time)
-        self.get_nwk_data()
-        self.layout.addLayout(layout)
+        self.transmision_layout.setAlignment(Qt.AlignTop)
+        self.transmision_layout.addWidget(header_label)
+        self.layout.addLayout(self.transmision_layout)
 
     def read_and_handle(self):
         while True:
@@ -167,7 +159,6 @@ class MyMainWindow(QMainWindow):
         self.get_topology()
         self.get_nwk_data()
         self.get_transmision_data()
-
 
     def attach_sending_settings_window(self):
         layout = QVBoxLayout()
@@ -267,27 +258,28 @@ class MyMainWindow(QMainWindow):
 
     def handle_response(self, json_str):
         json_obj = json.loads(json_str.strip(b'\n'))
+        text = json.dumps(json_obj, skipkeys=True, indent=2)
+        print(text)
         if json_obj["information_type"] == 255:
-            dlg = QDialog(self)
+            dlg = QDialog()
             dlg.setWindowTitle("Błąd")
             if json_obj['error_description'] is not None:
                 layout = QVBoxLayout()
                 layout.addWidget(QLabel(json_obj['error_description']))
                 dlg.setLayout(layout)
-            dlg.exec()
+                print(json_obj['error_description'])
         elif json_obj["information_type"] == 1:
-            text = json.dumps(json_obj, skipkeys=True, indent=2)
-            print(text)
             container = QVBoxLayout()
             for rd in json_obj:
-                print(rd)
+                if rd == "information_type":
+                    continue
                 obj = json_obj[rd]
-                neighbors = rd["neighbors"]
-                routes = rd["routes"]
+                neighbors = obj["neighbors"]
+                routes = obj["routes"]
                 for n in neighbors:
                     sub_container = QVBoxLayout()
                     sub_container.addWidget(QLabel("Adres ieee: "))
-                    sub_container.addWidget(QLabel(n["iee_addr"]))
+                    sub_container.addWidget(QLabel(n["ieee_addr"]))
                     sub_container.addWidget(QLabel("Adres krótki: "))
                     sub_container.addWidget(QLabel(n["short_addr"]))
                     sub_container.addWidget(QLabel("LQI: "))
@@ -335,10 +327,19 @@ class MyMainWindow(QMainWindow):
             self.nwk_panid.setText("Adres rozszerzony: " + str(json_obj["extended_pan_id"]))
             self.nwk_channel.setText("Kanał: " + str(json_obj["channel"]))
         elif json_obj["information_type"] == 6:
-            self.adres.setText("Adres: " + str(json_obj["short_addr"]))
-            self.transmion_start.setText("Czas rozpoczęcia: " + str(json_obj["start_time"]))
-            self.transmion_end.setText("Czas zakończenia: " + str(json_obj["end_time"]))
-            self.transmion_start.setText("Czas trwania: " + str(json_obj["duration_ms"]))
+            for obj in json_obj['arr']:
+                print(obj['short_addr'])
+                layout = QVBoxLayout()
+                text = ""
+                layout.adWidget(QLabel("Adres ieee: " + obj["ieee_addr"]))
+                layout.addWidget(QLabel(" Krótki adres: " + obj["short_addr"]))
+                layout.addWidget(QLabel(" Udane pingi: " + str(obj["successful_pings"])))
+                layout.addWidget(QLabel(" Nieudane pingi: " + str(obj["failed_pings"])))
+                layout.addWidget(QLabel(" Czas rozpoczęcia: " + str(obj["start_time"])))
+                layout.addWidget(QLabel(" Czas zakończenia: " + str(obj["end_time"])))
+                layout.addWidget(QLabel(" Czas trwania: " + str(obj["duration_ms"])))
+                self.layout.addWidget(QLabel(" Czas rekonwergencji: " + str(obj["recon_time"])))
+                self.transmision_layout.addLayout(layout)
         else:
             print("informacja z poza zakresu")
 
