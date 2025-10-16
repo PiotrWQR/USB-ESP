@@ -7,7 +7,7 @@ from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QColor, QPalette
 from PyQt5.QtWidgets import (QApplication, QWidget, QMainWindow, QLabel,
                              QPushButton, QVBoxLayout, QLineEdit,  QHBoxLayout,
-                             QDialog)
+                             QDialog, QScrollArea)
 # dostęp do com musi być zarzadzany asynchronicznie
 
 request_types = {
@@ -64,17 +64,17 @@ class MyMainWindow(QMainWindow):
         self.nwk_panid = QLabel()
         self.nwk_channel = QLabel()
         self.adres = QLabel()
-        self.transmision_layout = QVBoxLayout()
+        self.transmision_label = QLabel()
         print("0.5")
         self.attach_cca_layout()
         print("1")
         self.attach_sending_settings_window()
         print("2")
-        self.show_tables()
-        print("3")
-        self.attach_topology()
-        print("4")
         self.attach_nwk_layout()
+        print("3")
+        self.show_tables()
+        print("4")
+        self.attach_topology()
         print("5")
         self.attach_transmission_layout()
         container = QWidget()
@@ -88,10 +88,20 @@ class MyMainWindow(QMainWindow):
         self.handle.start()
 
     def attach_transmission_layout(self):
-        header_label = QLabel("Dane transmisji")
-        self.transmision_layout.setAlignment(Qt.AlignTop)
-        self.transmision_layout.addWidget(header_label)
-        self.layout.addLayout(self.transmision_layout)
+        layout = QVBoxLayout()
+        area = QScrollArea()
+        area.setMinimumWidth(280)
+        area.setAlignment(Qt.AlignTop)
+        header_label = QLabel("Dane transmisji              ")
+        layout.setAlignment(Qt.AlignTop)
+        layout.addWidget(header_label)
+        area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        area.setWidgetResizable(True)
+        area.setWidget(self.transmision_label)
+        layout.addWidget(area)
+
+        self.layout.addLayout(layout)
 
     def read_and_handle(self):
         while True:
@@ -101,6 +111,7 @@ class MyMainWindow(QMainWindow):
     def attach_nwk_layout(self):
         layout = QVBoxLayout()
         header_label = QLabel("Dane sieci")
+        header_label.setFixedWidth(300)
         layout.addWidget(header_label)
         layout.setAlignment(Qt.AlignTop)
         layout.addWidget(self.nwk_panid)
@@ -120,6 +131,7 @@ class MyMainWindow(QMainWindow):
         layout.setAlignment(Qt.AlignTop)
 
         header_label = QLabel("Ustawienia CA/CSMA")
+        header_label.setFixedWidth(270)
         bemin_label = QLabel("Minimalna ekspotencja odwrotu")
         bemax_label = QLabel("Maksymalna ekspotencja odwrotu(max ")
         retries_label = QLabel("Maksymalna liczba prób(maks 8)")
@@ -132,10 +144,8 @@ class MyMainWindow(QMainWindow):
         layout.addWidget(retries_label)
         layout.addWidget(self.retries_edit)
         cca_button = QPushButton()
-        self.get_cca_data()
-        self.get_msg_settings()
-        self.get_topology()
         cca_button.setText("Zatwierź nowe parametry")
+        self.get_cca_data()
         cca_button.pressed.connect(self.set_cca_data)
         layout.addWidget(cca_button)
         self.layout.addLayout(layout)
@@ -156,13 +166,16 @@ class MyMainWindow(QMainWindow):
     def update_topology_tables(self):
         self.get_msg_settings()
         self.get_tables()
+        time.sleep(0.2)
         self.get_topology()
         self.get_nwk_data()
+        time.sleep(0.2)
         self.get_transmision_data()
 
     def attach_sending_settings_window(self):
         layout = QVBoxLayout()
         header_label = QLabel("Ustawienia żądań")
+        header_label.setFixedWidth(270)
         repeats_label = QLabel("Powtórzenia")
         dest_addr_label = QLabel("Adres docelowy (szesnastkowy)")
         delay_label = QLabel("Przerwa między żądaniami(ms)")
@@ -196,7 +209,7 @@ class MyMainWindow(QMainWindow):
             "request_type": 2
         }
         self.ser.write(json.dumps(request).encode("utf-8"))
-        time.sleep(0.2)
+        time.sleep(0.05)
 
     def get_msg_settings(self):
         time.sleep(0.05)
@@ -214,18 +227,19 @@ class MyMainWindow(QMainWindow):
         time.sleep(0.1)
 
     def get_transmision_data(self):
+        time.sleep(0.5)
         request = {
             "request_type": 8,
         }
+
         self.ser.write(json.dumps(request).encode("utf-8"))
-        time.sleep(0.2)
 
     def get_topology(self):
         request = {
             "request_type": 1,
         }
         self.ser.write(json.dumps(request).encode("utf-8"))
-        time.sleep(0.2)
+        time.sleep(0.1)
 
     def set_cca_data(self):
         request = dict()
@@ -238,12 +252,20 @@ class MyMainWindow(QMainWindow):
         self.get_cca_data()
 
     def attach_topology(self):
+        area = QScrollArea()
+        area.setMinimumWidth(280)
+        area.setAlignment(Qt.AlignTop)
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignTop)
-        header_label = QLabel("Topologia")
+        header_label = QLabel("Topologia       ")
         header_label.setAlignment(Qt.AlignTop)
         layout.addWidget(header_label)
-        layout.addWidget(self.topology_label)
+        area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        area.setWidgetResizable(True)
+        area.setWidget(self.topology_label)
+        layout.addWidget(area)
+
         self.layout.addLayout(layout)
 
     def set_sending_settings(self):
@@ -268,47 +290,48 @@ class MyMainWindow(QMainWindow):
                 layout.addWidget(QLabel(json_obj['error_description']))
                 dlg.setLayout(layout)
                 print(json_obj['error_description'])
-        elif json_obj["information_type"] == 1:
-            container = QVBoxLayout()
+        elif json_obj["information_type"] == 1: #toplogy
+            text = ""
             for rd in json_obj:
                 if rd == "information_type":
                     continue
+                text += "Router: " + rd + '\n'
                 obj = json_obj[rd]
                 neighbors = obj["neighbors"]
                 routes = obj["routes"]
+                text += " Sąsiedzi: " + '\n'
                 for n in neighbors:
                     sub_container = QVBoxLayout()
-                    sub_container.addWidget(QLabel("Adres ieee: "))
-                    sub_container.addWidget(QLabel(n["ieee_addr"]))
-                    sub_container.addWidget(QLabel("Adres krótki: "))
-                    sub_container.addWidget(QLabel(n["short_addr"]))
-                    sub_container.addWidget(QLabel("LQI: "))
-                    sub_container.addWidget(QLabel(n["lqi"]))
-                    sub_container.addWidget(QLabel("RSSI: "))
-                    sub_container.addWidget(QLabel(n["rssi"]))
-                    sub_container.addWidget(QLabel("Koszt: "))
-                    sub_container.addWidget(QLabel(n["outgoing_cost"]))
-                    sub_container.addWidget(QLabel("Relacja: "))
-                    sub_container.addWidget(QLabel(relationship_type[n["relationship"]]))
-                    container.addWidget(sub_container)
+                    text += "  Adres ieee: "
+                    text += (n["ieee_addr"] + '\n')
+                    text += "   Adres krótki: "
+                    text += (n["short_addr"] + '\n')
+                    text += "   LQI: "
+                    text += (str(n["lqi"]) + '\n')
+                    text += "   RSSI: "
+                    text +=(str(n["rssi"]) + '\n')
+                    text += "   Koszt: "
+                    text += (str(n["outgoing_cost"]) + '\n')
+                    text += "   Relacja: "
+                    text += relationship_type[n["relationship"]] + '\n'
+                text += " Trasy: \n"
                 for r in routes:
-                    sub_container = QVBoxLayout()
-                    sub_container.addWidget("Adres docelowy: ")
-                    sub_container.addWidget(r["dest_addr"])
-                    sub_container.addWidget("Następny węzeł: ")
-                    sub_container.addWidget(r["next_hop"])
-
-            self.layout.addLayout(container)
-        elif json_obj['information_type'] == 2:
+                    text += "  Adres docelowy: "
+                    text += (r["dest_addr"] + '\n')
+                    text += "   Następny węzeł: "
+                    text += (r["next_hop"] + '\n')
+                text += '\n'
+            self.topology_label.setText(text)
+        elif json_obj['information_type'] == 2: #cca
             self.bemin_edit.setText(str(json_obj['csma_min_be']))
             self.bemax_edit.setText(str(json_obj['csma_max_be']))
             self.retries_edit.setText(str(json_obj['csma_max_backoffs']))
-        elif json_obj["information_type"] == 3:
+        elif json_obj["information_type"] == 3: # transsmision settings
             self.repeats_edit.setText(str(json_obj['repeats']))
             self.dest_addr_edit.setText(str(json_obj['dest_addr_str']))
             self.delay_edit.setText(str(json_obj['delay_ms']))
             self.payload_size_edit.setText(str(json_obj['payload_size']))
-        elif json_obj["information_type"] == 4:
+        elif json_obj["information_type"] == 4: # tablice
             text = "Dane sąsiadów koordynatora:\n"
             for neighbour in json_obj["neighbors"]:
                 text += " Adres ieee: " + neighbour["ieee_addr"] + "\n"
@@ -323,23 +346,26 @@ class MyMainWindow(QMainWindow):
                 text += "  Adres: " + route["dest_addr"] + "\n"
                 text += "  Następny węzeł: " + route['next_hop'] + "\n"
             self.tables_label.setText(text)
-        elif json_obj["information_type"] == 5:
+        elif json_obj["information_type"] == 5: #network
             self.nwk_panid.setText("Adres rozszerzony: " + str(json_obj["extended_pan_id"]))
             self.nwk_channel.setText("Kanał: " + str(json_obj["channel"]))
-        elif json_obj["information_type"] == 6:
+        elif json_obj["information_type"] == 6:  #transmision data
+            text = ""
             for obj in json_obj['arr']:
                 print(obj['short_addr'])
-                layout = QVBoxLayout()
-                text = ""
-                layout.adWidget(QLabel("Adres ieee: " + obj["ieee_addr"]))
-                layout.addWidget(QLabel(" Krótki adres: " + obj["short_addr"]))
-                layout.addWidget(QLabel(" Udane pingi: " + str(obj["successful_pings"])))
-                layout.addWidget(QLabel(" Nieudane pingi: " + str(obj["failed_pings"])))
-                layout.addWidget(QLabel(" Czas rozpoczęcia: " + str(obj["start_time"])))
-                layout.addWidget(QLabel(" Czas zakończenia: " + str(obj["end_time"])))
-                layout.addWidget(QLabel(" Czas trwania: " + str(obj["duration_ms"])))
-                self.layout.addWidget(QLabel(" Czas rekonwergencji: " + str(obj["recon_time"])))
-                self.transmision_layout.addLayout(layout)
+                text += ("Adres ieee: " + obj["ieee_addr"] + '\n')
+                text += (" Krótki adres: " + obj["short_addr"] + '\n')
+                text += (" Udane pingi: " + str(obj["successful_pings"]) + '\n')
+                text += (" Nieudane pingi: " + str(obj["failed_pings"]) + '\n')
+                text += (" Czas rozpoczęcia: " + str(obj["start_time"]) + '\n')
+                text += (" Czas zakończenia: " + str(obj["end_time"]) + '\n')
+                text += (" Czas trwania: " + str(obj["duration_ms"]) + '\n')
+                text += (" Wyznaczone powtórzenia: " + str(obj["repeats"]) + '\n')
+                text += (" Wyznaczone opóżnienie: " + str(obj["delay"]) + '\n')
+                text += (" Wyznaczony rozmiar: " + str(obj["size"]) + '\n')
+                if obj["recon_time"] != 0:
+                    text += (" Czas rekonwergencji: " + str(obj["recon_time"]) + '\n\n')
+            self.transmision_label.setText(text)
         else:
             print("informacja z poza zakresu")
 
