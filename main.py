@@ -87,197 +87,6 @@ class MyMainWindow(QMainWindow):
         self.handle = threading.Thread(target=self.read_and_handle)
         self.handle.start()
 
-    def attach_transmission_layout(self):
-        layout = QVBoxLayout()
-        area = QScrollArea()
-        area.setMinimumWidth(280)
-        area.setAlignment(Qt.AlignTop)
-        header_label = QLabel("Dane transmisji              ")
-        layout.setAlignment(Qt.AlignTop)
-        layout.addWidget(header_label)
-        area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        area.setWidgetResizable(True)
-        area.setWidget(self.transmision_label)
-        layout.addWidget(area)
-
-        self.layout.addLayout(layout)
-
-    def read_and_handle(self):
-        while True:
-            line = self.ser.readline()
-            self.handle_response(line)
-
-    def attach_nwk_layout(self):
-        layout = QVBoxLayout()
-        header_label = QLabel("Dane sieci")
-        header_label.setFixedWidth(300)
-        layout.addWidget(header_label)
-        layout.setAlignment(Qt.AlignTop)
-        layout.addWidget(self.nwk_panid)
-        layout.addWidget(self.nwk_channel)
-        self.get_nwk_data()
-        self.layout.addLayout(layout)
-
-    def show_error_window(self, text):
-        self.setWindowTitle("Bład")
-        label = QLabel(text)
-        label.setAlignment(Qt.AlignCenter)
-        self.setCentralWidget(label)
-        self.show()
-
-    def attach_cca_layout(self):
-        layout = QVBoxLayout()
-        layout.setAlignment(Qt.AlignTop)
-
-        header_label = QLabel("Ustawienia CA/CSMA")
-        header_label.setFixedWidth(270)
-        bemin_label = QLabel("Minimalna ekspotencja odwrotu")
-        bemax_label = QLabel("Maksymalna ekspotencja odwrotu(max ")
-        retries_label = QLabel("Maksymalna liczba prób(maks 8)")
-
-        layout.addWidget(header_label)
-        layout.addWidget(bemin_label)
-        layout.addWidget(self.bemin_edit)
-        layout.addWidget(bemax_label)
-        layout.addWidget(self.bemax_edit)
-        layout.addWidget(retries_label)
-        layout.addWidget(self.retries_edit)
-        cca_button = QPushButton()
-        cca_button.setText("Zatwierź nowe parametry")
-        self.get_cca_data()
-        cca_button.pressed.connect(self.set_cca_data)
-        layout.addWidget(cca_button)
-        self.layout.addLayout(layout)
-
-    def show_tables(self):
-        layout = QVBoxLayout()
-        layout.setAlignment(Qt.AlignTop)
-        self.get_tables()
-        header_lable = QLabel("Tablice")
-        layout.addWidget(header_lable)
-        layout.addWidget(self.tables_label)
-        button = QPushButton()
-        button.setText("Ściągnij aktualne dane")
-        button.pressed.connect(self.update_topology_tables)
-        layout.addWidget(button)
-        self.layout.addLayout(layout)
-
-    def update_topology_tables(self):
-        self.get_msg_settings()
-        self.get_tables()
-        time.sleep(0.2)
-        self.get_topology()
-        self.get_nwk_data()
-        time.sleep(0.2)
-        self.get_transmision_data()
-
-    def attach_sending_settings_window(self):
-        layout = QVBoxLayout()
-        header_label = QLabel("Ustawienia żądań")
-        header_label.setFixedWidth(270)
-        repeats_label = QLabel("Powtórzenia")
-        dest_addr_label = QLabel("Adres docelowy (szesnastkowy)")
-        delay_label = QLabel("Przerwa między żądaniami(ms)")
-        payload_size_label = QLabel("Rozmiar ładunku")
-        header_label.setAlignment(Qt.AlignTop)
-        layout.setAlignment(Qt.AlignTop)
-        button = QPushButton()
-        button.setText("Zatwierź nowe parametry")
-        button.pressed.connect(self.set_sending_settings)
-        layout.addWidget(header_label)
-        layout.addWidget(repeats_label)
-        layout.addWidget(self.repeats_edit)
-        layout.addWidget(dest_addr_label)
-        layout.addWidget(self.dest_addr_edit)
-        layout.addWidget(delay_label)
-        layout.addWidget(self.delay_edit)
-        layout.addWidget(payload_size_label)
-        layout.addWidget(self.payload_size_edit)
-        layout.addWidget(button)
-        self.layout.addLayout(layout)
-
-    def get_nwk_data(self):
-        request = {
-            "request_type":7
-        }
-        self.ser.write(json.dumps(request).encode("utf-8"))
-        time.sleep(0.1)
-
-    def get_cca_data(self):
-        request = {
-            "request_type": 2
-        }
-        self.ser.write(json.dumps(request).encode("utf-8"))
-        time.sleep(0.05)
-
-    def get_msg_settings(self):
-        time.sleep(0.05)
-        request = {
-            "request_type": 3
-        }
-        self.ser.write(json.dumps(request).encode("utf-8"))
-        time.sleep(0.05)
-
-    def get_tables(self):
-        request = {
-            "request_type": 6,
-        }
-        self.ser.write(json.dumps(request).encode("utf-8"))
-        time.sleep(0.1)
-
-    def get_transmision_data(self):
-        time.sleep(0.5)
-        request = {
-            "request_type": 8,
-        }
-
-        self.ser.write(json.dumps(request).encode("utf-8"))
-
-    def get_topology(self):
-        request = {
-            "request_type": 1,
-        }
-        self.ser.write(json.dumps(request).encode("utf-8"))
-        time.sleep(0.1)
-
-    def set_cca_data(self):
-        request = dict()
-        request['request_type'] = request_types['set_cca']
-        request['csma_min_be'] = self.bemin_edit.text()
-        request['csma_max_be'] = self.bemax_edit.text()
-        request['csma_max_backoffs'] = self.retries_edit.text()
-        json_str = json.dumps(request).encode("utf-8")
-        self.ser.write(json_str)
-        self.get_cca_data()
-
-    def attach_topology(self):
-        area = QScrollArea()
-        area.setMinimumWidth(280)
-        area.setAlignment(Qt.AlignTop)
-        layout = QVBoxLayout()
-        layout.setAlignment(Qt.AlignTop)
-        header_label = QLabel("Topologia       ")
-        header_label.setAlignment(Qt.AlignTop)
-        layout.addWidget(header_label)
-        area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        area.setWidgetResizable(True)
-        area.setWidget(self.topology_label)
-        layout.addWidget(area)
-
-        self.layout.addLayout(layout)
-
-    def set_sending_settings(self):
-        request = dict()
-        request["request_type"] = 5
-        request['dest_addr'] = int(self.dest_addr_edit.text(), 16)
-        request['delay_ms'] = int(self.delay_edit.text())
-        request['repeats'] = int(self.repeats_edit.text())
-        request['payload_size'] = int(self.payload_size_edit.text())
-        request_json = json.dumps(request).encode("utf-8")
-        self.ser.write(request_json)
-
     def handle_response(self, json_str):
         json_obj = json.loads(json_str.strip(b'\n'))
         text = json.dumps(json_obj, skipkeys=True, indent=2)
@@ -368,6 +177,228 @@ class MyMainWindow(QMainWindow):
             self.transmision_label.setText(text)
         else:
             print("informacja z poza zakresu")
+
+    def attach_transmission_layout(self):
+        layout = QVBoxLayout()
+        area = QScrollArea()
+        area.setMinimumWidth(280)
+        area.setAlignment(Qt.AlignTop)
+        header_label = QLabel("Dane transmisji              ")
+        layout.setAlignment(Qt.AlignTop)
+        layout.addWidget(header_label)
+        area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        area.setWidgetResizable(True)
+        area.setWidget(self.transmision_label)
+        layout.addWidget(area)
+        button = QPushButton("Wyczyść tablice transmsji")
+        button.clicked.connect(self.clear_transmission)
+        layout.addWidget(button)
+        self.layout.addLayout(layout)
+
+    def read_and_handle(self):
+        while True:
+            line = self.ser.readline()
+            self.handle_response(line)
+
+    def attach_nwk_layout(self):
+        layout = QVBoxLayout()
+        header_label = QLabel("Dane sieci")
+        header_label.setFixedWidth(300)
+        layout.addWidget(header_label)
+        layout.setAlignment(Qt.AlignTop)
+        layout.addWidget(self.nwk_panid)
+        layout.addWidget(self.nwk_channel)
+        button1 = QPushButton("Otwórz sieć")
+        button1.clicked.connect(self.open_network)
+        button2 = QPushButton("Resetuj sieć")
+        button2.clicked.connect(self.reset_network)
+        layout.addWidget(button1)
+        layout.addWidget(button2)
+        self.get_nwk_data()
+        self.layout.addLayout(layout)
+
+    def show_error_window(self, text):
+        self.setWindowTitle("Bład")
+        label = QLabel(text)
+        label.setAlignment(Qt.AlignCenter)
+        self.setCentralWidget(label)
+        self.show()
+
+    def attach_cca_layout(self):
+        layout = QVBoxLayout()
+        layout.setAlignment(Qt.AlignTop)
+
+        header_label = QLabel("Ustawienia CA/CSMA")
+        header_label.setFixedWidth(270)
+        bemin_label = QLabel("Minimalna ekspotencja odwrotu (min 4)")
+        bemax_label = QLabel("Maksymalna ekspotencja odwrotu(max 8)")
+        retries_label = QLabel("Maksymalna liczba prób(max 8)")
+
+        layout.addWidget(header_label)
+        layout.addWidget(bemin_label)
+        layout.addWidget(self.bemin_edit)
+        layout.addWidget(bemax_label)
+        layout.addWidget(self.bemax_edit)
+        layout.addWidget(retries_label)
+        layout.addWidget(self.retries_edit)
+        cca_button = QPushButton()
+        cca_button.setText("Zatwierź nowe parametry")
+        self.get_cca_data()
+        cca_button.pressed.connect(self.set_cca_data)
+        layout.addWidget(cca_button)
+        self.layout.addLayout(layout)
+
+    def show_tables(self):
+        layout = QVBoxLayout()
+        layout.setAlignment(Qt.AlignTop)
+        self.get_tables()
+        header_lable = QLabel("Tablice")
+        layout.addWidget(header_lable)
+        layout.addWidget(self.tables_label)
+        button = QPushButton()
+        button.setText("Ściągnij aktualne dane")
+        button.pressed.connect(self.update_topology_tables)
+        layout.addWidget(button)
+        self.layout.addLayout(layout)
+
+    def update_topology_tables(self):
+        self.get_transmission_data()
+
+        self.get_msg_settings()
+        time.sleep(0.1)
+        self.get_tables()
+        time.sleep(0.1)
+        self.get_topology()
+        self.get_nwk_data()
+
+    def attach_sending_settings_window(self):
+        layout = QVBoxLayout()
+        header_label = QLabel("Ustawienia żądań")
+        header_label.setFixedWidth(270)
+        repeats_label = QLabel("Powtórzenia")
+        dest_addr_label = QLabel("Adres docelowy (szesnastkowy)")
+        delay_label = QLabel("Przerwa między żądaniami(ms)")
+        payload_size_label = QLabel("Rozmiar ładunku")
+        header_label.setAlignment(Qt.AlignTop)
+        layout.setAlignment(Qt.AlignTop)
+        button = QPushButton()
+        button.setText("Zatwierź nowe parametry")
+        button.pressed.connect(self.set_sending_settings)
+        layout.addWidget(header_label)
+        layout.addWidget(repeats_label)
+        layout.addWidget(self.repeats_edit)
+        layout.addWidget(dest_addr_label)
+        layout.addWidget(self.dest_addr_edit)
+        layout.addWidget(delay_label)
+        layout.addWidget(self.delay_edit)
+        layout.addWidget(payload_size_label)
+        layout.addWidget(self.payload_size_edit)
+        layout.addWidget(button)
+
+        self.layout.addLayout(layout)
+
+    def get_nwk_data(self):
+        request = {
+            "request_type": 7
+        }
+        self.ser.write(json.dumps(request).encode("utf-8"))
+        time.sleep(0.1)
+
+    def get_cca_data(self):
+        request = {
+            "request_type": 2
+        }
+        self.ser.write(json.dumps(request).encode("utf-8"))
+        time.sleep(0.05)
+
+    def get_msg_settings(self):
+        time.sleep(0.05)
+        request = {
+            "request_type": 3
+        }
+        self.ser.write(json.dumps(request).encode("utf-8"))
+        time.sleep(0.05)
+
+    def get_tables(self):
+        request = {
+            "request_type": 6,
+        }
+        self.ser.write(json.dumps(request).encode("utf-8"))
+        time.sleep(0.1)
+
+    def get_transmission_data(self):
+        time.sleep(0.1)
+        request = {
+            "request_type": 8,
+        }
+
+        self.ser.write(json.dumps(request).encode("utf-8"))
+
+    def get_topology(self):
+        request = {
+            "request_type": 1,
+        }
+        self.ser.write(json.dumps(request).encode("utf-8"))
+        time.sleep(0.1)
+
+    def set_cca_data(self):
+        request = dict()
+        request['request_type'] = request_types['set_cca']
+        request['csma_min_be'] = self.bemin_edit.text()
+        request['csma_max_be'] = self.bemax_edit.text()
+        request['csma_max_backoffs'] = self.retries_edit.text()
+        json_str = json.dumps(request).encode("utf-8")
+        self.ser.write(json_str)
+        self.get_cca_data()
+
+    def attach_topology(self):
+        area = QScrollArea()
+        area.setMinimumWidth(280)
+        area.setAlignment(Qt.AlignTop)
+        layout = QVBoxLayout()
+        layout.setAlignment(Qt.AlignTop)
+        header_label = QLabel("Topologia       ")
+        header_label.setAlignment(Qt.AlignTop)
+        layout.addWidget(header_label)
+        area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        area.setWidgetResizable(True)
+        area.setWidget(self.topology_label)
+        layout.addWidget(area)
+
+        self.layout.addLayout(layout)
+
+    def set_sending_settings(self):
+        request = dict()
+        request["request_type"] = 5
+        request['dest_addr'] = int(self.dest_addr_edit.text(), 16)
+        request['delay_ms'] = int(self.delay_edit.text())
+        request['repeats'] = int(self.repeats_edit.text())
+        request['payload_size'] = int(self.payload_size_edit.text())
+        request_json = json.dumps(request).encode("utf-8")
+        self.ser.write(request_json)
+
+    def clear_transmission(self):
+        request ={
+            "request_type": 9,
+        }
+        msg = json.dumps(request).encode("utf-8")
+        self.ser.write(msg)
+
+    def open_network(self):
+        request ={
+            "request_type": 10,
+        }
+        msg = json.dumps(request).encode("utf-8")
+        self.ser.write(msg)
+
+    def reset_network(self):
+        request ={
+            "request_type": 11,
+        }
+        msg = json.dumps(request).encode("utf-8")
+        self.ser.write(msg)
 
 
 app = QApplication(sys.argv)
