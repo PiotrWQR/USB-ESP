@@ -7,7 +7,7 @@ from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QColor, QPalette
 from PyQt5.QtWidgets import (QApplication, QWidget, QMainWindow, QLabel,
                              QPushButton, QVBoxLayout, QLineEdit, QHBoxLayout,
-                             QDialog, QScrollArea)
+                             QDialog, QScrollArea, QListWidget, QListWidgetItem)
 
 
 request_types = {
@@ -65,6 +65,8 @@ class MyMainWindow(QMainWindow):
         self.nwk_channel = QLabel()
         self.adres = QLabel()
         self.transmision_label = QLabel()
+        self.topology_list = QListWidget()
+        self.list_item = QListWidgetItem(self.topology_list)
 
         request = dict()
         request["request_type"] = 5
@@ -388,6 +390,7 @@ class MyMainWindow(QMainWindow):
         area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         area.setWidgetResizable(True)
         area.setWidget(self.topology_label)
+        area.setWidget(self.topology_list)
         layout.addWidget(area)
 
         self.layout.addLayout(layout)
