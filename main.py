@@ -3,11 +3,12 @@ import time
 import threading
 import json
 import serial
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer, QStringListModel, QModelIndex, QPersistentModelIndex
 from PyQt5.QtGui import QColor, QPalette
 from PyQt5.QtWidgets import (QApplication, QWidget, QMainWindow, QLabel,
                              QPushButton, QVBoxLayout, QLineEdit, QHBoxLayout,
-                             QDialog, QScrollArea, QListWidget, QListWidgetItem)
+                             QDialog, QScrollArea, QListWidget, QListWidgetItem,
+                             QListView)
 
 
 request_types = {
@@ -31,6 +32,7 @@ relationship_type = {
     4: "poprzednie dziecko",
     5: "nieautoryzowane dziecko"
 }
+basewidth = 210
 
 
 class Color(QWidget):
@@ -61,12 +63,12 @@ class MyMainWindow(QMainWindow):
         self.payload_size_edit = QLineEdit()
         self.tables_label = QLabel()
         self.topology_label = QLabel()
-        self.nwk_panid = QLabel()
+        self.nwk_pan_id = QLabel()
         self.nwk_channel = QLabel()
-        self.adres = QLabel()
-        self.transmision_label = QLabel()
+        self.address = QLabel()
+        self.transmission_label = QLabel()
         self.topology_list = QListWidget()
-        self.list_item = QListWidgetItem(self.topology_list)
+        self.transmission_list = QListWidget()
 
         request = dict()
         request["request_type"] = 5
@@ -85,8 +87,8 @@ class MyMainWindow(QMainWindow):
         self.attach_nwk_layout()
         print("3")
         self.attach_topology()
-        self.show_tables()
         print("4")
+        self.attach_tables()
         print("5")
         self.attach_transmission_layout()
         container = QWidget()
@@ -94,14 +96,14 @@ class MyMainWindow(QMainWindow):
         self.setCentralWidget(container)
         self.setLayout(self.layout)
         self.show()
-        self.update_topology_tables()
+        self.update_window()
 
         self.handle = threading.Thread(target=self.read_and_handle)
         self.handle.start()
 
     def handle_response(self, json_str):
         json_obj = json.loads(json_str.strip(b'\n'))
-        text = json.dumps(json_obj, skipkeys=True, indent=2)
+        # text = json.dumps(json_obj, skipkeys=True, indent=2)
         # print(text)
         # błąd
         if json_obj["information_type"] == 255:
@@ -114,39 +116,30 @@ class MyMainWindow(QMainWindow):
                 print(json_obj['error_description'])
         # toplogy
         elif json_obj["information_type"] == 1:
-            text = ""
+            self.topology_list.clear()
             for rd in json_obj:
                 if rd == "information_type":
                     continue
+                text = ""
                 text += "Router: " + rd + '\n'
                 obj = json_obj[rd]
                 neighbors = obj["neighbors"]
                 routes = obj["routes"]
                 text += " Sąsiedzi: " + '\n'
                 for n in neighbors:
-                    sub_container = QVBoxLayout()
-                    text += "  Adres ieee: "
-                    text += (n["ieee_addr"] + '\n')
-                    text += "   Adres krótki: "
-                    text += (n["short_addr"] + '\n')
-                    text += "   LQI: "
-                    text += (str(n["lqi"]) + '\n')
-                    text += "   RSSI: "
-                    text += (str(n["rssi"]) + '\n')
-                    text += "   Typ urządzenia : "
-                    text += (device_types[n["device_type"]] + '\n')
-                    text += "   Koszt: "
-                    text += (str(n["outgoing_cost"]) + '\n')
-                    text += "   Relacja: "
-                    text += relationship_type[n["relationship"]] + '\n'
+                    text += "  Adres ieee: " + n["ieee_addr"] + '\n'
+                    text += "   Adres krótki: " + n["short_addr"] + '\n'
+                    text += "   LQI: " + str(n["lqi"]) + '\n'
+                    text += "   RSSI: " + str(n["rssi"]) + '\n'
+                    text += "   Typ urządzenia : " + device_types[n["device_type"]] + '\n'
+                    text += "   Koszt: " + str(n["outgoing_cost"]) + '\n'
+                    text += "   Relacja: " + relationship_type[n["relationship"]] + '\n'
                 text += " Trasy: \n"
                 for r in routes:
-                    text += "  Adres docelowy: "
-                    text += (r["dest_addr"] + '\n')
-                    text += "   Następny węzeł: "
-                    text += (r["next_hop"] + '\n')
-                text += '\n'
-            self.topology_label.setText(text)
+                    text += "  Adres docelowy: " + r["dest_addr"] + '\n'
+                    text += "   Następny węzeł: " + r["next_hop"] + '\n'
+                item = QListWidgetItem(self.topology_list)
+                item.setText(text)
         # cca
         elif json_obj['information_type'] == 2:
             self.bemin_edit.setText(str(json_obj['csma_min_be']))
@@ -175,14 +168,15 @@ class MyMainWindow(QMainWindow):
                 text += "  Adres: " + route["dest_addr"] + "\n"
                 text += "  Następny węzeł: " + route['next_hop'] + "\n"
             self.tables_label.setText(text)
-        # parametry nek
+        # parametry nwk
         elif json_obj["information_type"] == 5:
-            self.nwk_panid.setText("Adres rozszerzony: " + str(json_obj["extended_pan_id"]))
+            self.nwk_pan_id.setText("Adres rozszerzony: " + str(json_obj["extended_pan_id"]))
             self.nwk_channel.setText("Kanał: " + str(json_obj["channel"]))
         # transmision data
         elif json_obj["information_type"] == 6:
-            text = ""
+            self.transmission_list.clear()
             for obj in json_obj['arr']:
+                text = ""
                 text += ("Adres ieee: " + obj["ieee_addr"] + '\n')
                 text += (" Krótki adres: " + obj["short_addr"] + '\n')
                 text += (" Udane pingi: " + str(obj["successful_pings"]) + '\n')
@@ -195,14 +189,20 @@ class MyMainWindow(QMainWindow):
                 text += (" Wyznaczony rozmiar: " + str(obj["size"]) + '\n')
                 if obj["recon_time"] != 0:
                     text += (" Czas rekonwergencji: " + str(obj["recon_time"]) + '\n\n')
-            self.transmision_label.setText(text)
+                item = QListWidgetItem(self.transmission_list)
+                item.setText(text)
         else:
             print("informacja z poza zakresu")
+
+    def read_and_handle(self):
+        while True:
+            line = self.ser.readline()
+            self.handle_response(line)
 
     def attach_transmission_layout(self):
         layout = QVBoxLayout()
         area = QScrollArea()
-        area.setMinimumWidth(280)
+        area.setMinimumWidth(220)
         area.setAlignment(Qt.AlignTop)
         header_label = QLabel("Dane transmisji              ")
         layout.setAlignment(Qt.AlignTop)
@@ -210,25 +210,20 @@ class MyMainWindow(QMainWindow):
         area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         area.setWidgetResizable(True)
-        area.setWidget(self.transmision_label)
+        area.setWidget(self.transmission_list)
         layout.addWidget(area)
         button = QPushButton("Wyczyść tablice transmsji")
         button.clicked.connect(self.clear_transmission)
         layout.addWidget(button)
         self.layout.addLayout(layout)
 
-    def read_and_handle(self):
-        while True:
-            line = self.ser.readline()
-            self.handle_response(line)
-
     def attach_nwk_layout(self):
         layout = QVBoxLayout()
         header_label = QLabel("Dane sieci")
-        header_label.setFixedWidth(300)
+        header_label.setFixedWidth(basewidth)
         layout.addWidget(header_label)
         layout.setAlignment(Qt.AlignTop)
-        layout.addWidget(self.nwk_panid)
+        layout.addWidget(self.nwk_pan_id)
         layout.addWidget(self.nwk_channel)
         button1 = QPushButton("Otwórz sieć")
         button1.clicked.connect(self.open_network)
@@ -247,11 +242,12 @@ class MyMainWindow(QMainWindow):
         self.show()
 
     def attach_cca_layout(self):
+
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignTop)
 
         header_label = QLabel("Ustawienia CA/CSMA")
-        header_label.setFixedWidth(270)
+        header_label.setFixedWidth(basewidth)
         bemin_label = QLabel("Minimalna ekspotencja odwrotu (min 4)")
         bemax_label = QLabel("Maksymalna ekspotencja odwrotu(max 8)")
         retries_label = QLabel("Maksymalna liczba prób(max 8)")
@@ -269,7 +265,24 @@ class MyMainWindow(QMainWindow):
         layout.addWidget(cca_button)
         self.layout.addLayout(layout)
 
-    def show_tables(self):
+    def attach_topology(self):
+        area = QScrollArea()
+        area.setMinimumWidth(220)
+        area.setAlignment(Qt.AlignTop)
+        layout = QVBoxLayout()
+        layout.setAlignment(Qt.AlignTop)
+        header_label = QLabel("Topologia        ")
+        header_label.setAlignment(Qt.AlignTop)
+        layout.addWidget(header_label)
+        area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        area.setWidgetResizable(True)
+        area.setWidget(self.topology_list)
+        layout.addWidget(area)
+
+        self.layout.addLayout(layout)
+
+    def attach_tables(self):
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignTop)
         self.get_tables()
@@ -278,25 +291,14 @@ class MyMainWindow(QMainWindow):
         layout.addWidget(self.tables_label)
         button = QPushButton()
         button.setText("Ściągnij aktualne dane")
-        button.pressed.connect(self.update_topology_tables)
+        button.pressed.connect(self.update_window)
         layout.addWidget(button)
         self.layout.addLayout(layout)
-
-    def update_topology_tables(self):
-        self.get_transmission_data()
-
-        self.get_msg_settings()
-        time.sleep(0.1)
-        self.get_tables()
-        time.sleep(0.1)
-        self.get_topology()
-        self.get_nwk_data()
-        self.get_cca_data()
 
     def attach_sending_settings_window(self):
         layout = QVBoxLayout()
         header_label = QLabel("Ustawienia żądań")
-        header_label.setFixedWidth(270)
+        header_label.setFixedWidth(basewidth)
         repeats_label = QLabel("Powtórzenia")
         dest_addr_label = QLabel("Adres docelowy (szesnastkowy)")
         delay_label = QLabel("Przerwa między żądaniami(ms)")
@@ -322,6 +324,17 @@ class MyMainWindow(QMainWindow):
         layout.addWidget(button)
 
         self.layout.addLayout(layout)
+
+    def update_window(self):
+        self.get_transmission_data()
+
+        self.get_msg_settings()
+        time.sleep(0.1)
+        self.get_tables()
+        time.sleep(0.1)
+        self.get_topology()
+        self.get_nwk_data()
+        self.get_cca_data()
 
     def get_nwk_data(self):
         request = {
@@ -374,26 +387,9 @@ class MyMainWindow(QMainWindow):
         request['csma_max_be'] = self.bemax_edit.text()
         request['csma_max_backoffs'] = self.retries_edit.text()
         json_str = json.dumps(request).encode("utf-8")
-        self.ser.write(json_str)
+        if self.ser.writable():
+            self.ser.write(json_str)
         self.get_cca_data()
-
-    def attach_topology(self):
-        area = QScrollArea()
-        area.setMinimumWidth(280)
-        area.setAlignment(Qt.AlignTop)
-        layout = QVBoxLayout()
-        layout.setAlignment(Qt.AlignTop)
-        header_label = QLabel("Topologia        ")
-        header_label.setAlignment(Qt.AlignTop)
-        layout.addWidget(header_label)
-        area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        area.setWidgetResizable(True)
-        area.setWidget(self.topology_label)
-        area.setWidget(self.topology_list)
-        layout.addWidget(area)
-
-        self.layout.addLayout(layout)
 
     def set_sending_settings(self):
         request = dict()
@@ -404,28 +400,32 @@ class MyMainWindow(QMainWindow):
         request['payload_size'] = int(self.payload_size_edit.text())
         request['tx_power'] = int(self.tx_power_edit.text())
         request_json = json.dumps(request).encode("utf-8")
-        self.ser.write(request_json)
+        if self.ser.writable():
+            self.ser.write(request_json)
 
     def clear_transmission(self):
         request = {
             "request_type": 9,
         }
         msg = json.dumps(request).encode("utf-8")
-        self.ser.write(msg)
+        if self.ser.writable():
+            self.ser.write(msg)
 
     def open_network(self):
         request = {
             "request_type": 10,
         }
         msg = json.dumps(request).encode("utf-8")
-        self.ser.write(msg)
+        if self.ser.writable():
+            self.ser.write(msg)
 
     def reset_network(self):
         request = {
             "request_type": 11,
         }
         msg = json.dumps(request).encode("utf-8")
-        self.ser.write(msg)
+        if self.ser.writable():
+            self.ser.write(msg)
 
 
 app = QApplication(sys.argv)
