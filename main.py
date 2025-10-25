@@ -98,6 +98,8 @@ class MyMainWindow(QMainWindow):
         self.show()
         self.update_window()
 
+        self.ieee_list = list()
+
         self.handle = threading.Thread(target=self.read_and_handle)
         self.handle.start()
 
@@ -116,12 +118,15 @@ class MyMainWindow(QMainWindow):
                 print(json_obj['error_description'])
         # toplogy
         elif json_obj["information_type"] == 1:
+            print("topology")
             self.topology_list.clear()
+            self.ieee_list = []
             for rd in json_obj:
                 if rd == "information_type":
                     continue
                 text = ""
                 text += "Router: " + rd + '\n'
+                self.ieee_list.append("rd")
                 obj = json_obj[rd]
                 neighbors = obj["neighbors"]
                 routes = obj["routes"]
