@@ -63,6 +63,7 @@ class MyMainWindow(QMainWindow):
         self.payload_size_edit = QLineEdit()
         self.tables_label = QLabel()
         self.topology_label = QLabel()
+        self.nwk_ex_pan_id = QLabel()
         self.nwk_pan_id = QLabel()
         self.nwk_channel = QLabel()
         self.address = QLabel()
@@ -175,8 +176,9 @@ class MyMainWindow(QMainWindow):
             self.tables_label.setText(text)
         # parametry nwk
         elif json_obj["information_type"] == 5:
-            self.nwk_pan_id.setText("Adres rozszerzony: " + str(json_obj["extended_pan_id"]))
             self.nwk_channel.setText("Kanał: " + str(json_obj["channel"]))
+            self.nwk_pan_id.setText("Adres PAN: " + str(json_obj["pan_id"]))
+            self.nwk_ex_pan_id.setText("Adres rozszerzony: " + str(json_obj["extended_pan_id"]))
         # transmision data
         elif json_obj["information_type"] == 6:
             self.transmission_list.clear()
@@ -229,6 +231,7 @@ class MyMainWindow(QMainWindow):
         layout.addWidget(header_label)
         layout.setAlignment(Qt.AlignTop)
         layout.addWidget(self.nwk_pan_id)
+        layout.addWidget(self.nwk_ex_pan_id)
         layout.addWidget(self.nwk_channel)
         button1 = QPushButton("Otwórz sieć")
         button1.clicked.connect(self.open_network)
@@ -332,14 +335,17 @@ class MyMainWindow(QMainWindow):
 
     def update_window(self):
         self.get_transmission_data()
-
+        print("u1")
         self.get_msg_settings()
-        time.sleep(0.1)
+        print("u2")
         self.get_tables()
-        time.sleep(0.1)
+        print("u3")
         self.get_topology()
+        print("u4")
         self.get_nwk_data()
+        print("u5")
         self.get_cca_data()
+        print("u6")
 
     def get_nwk_data(self):
         request = {
