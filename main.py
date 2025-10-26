@@ -148,11 +148,13 @@ class MyMainWindow(QMainWindow):
                 item.setText(text)
         # cca
         elif json_obj['information_type'] == 2:
+            print("ca settings")
             self.bemin_edit.setText(str(json_obj['csma_min_be']))
             self.bemax_edit.setText(str(json_obj['csma_max_be']))
             self.retries_edit.setText(str(json_obj['csma_max_backoffs']))
         # ustawienia wiadomości
         elif json_obj["information_type"] == 3:  # transsmision settings
+            print("settings")
             self.repeats_edit.setText(str(json_obj['repeats']))
             self.dest_addr_edit.setText(str(json_obj['dest_addr_str']))
             self.delay_edit.setText(str(json_obj['delay_ms']))
@@ -160,6 +162,7 @@ class MyMainWindow(QMainWindow):
             self.tx_power_edit.setText(str(json_obj['tx_power']))
         # tablice
         elif json_obj["information_type"] == 4:
+            print("tables")
             text = "Dane sąsiadów koordynatora:\n"
             for neighbour in json_obj["neighbors"]:
                 text += " Adres ieee: " + neighbour["ieee_addr"] + "\n"
@@ -176,11 +179,13 @@ class MyMainWindow(QMainWindow):
             self.tables_label.setText(text)
         # parametry nwk
         elif json_obj["information_type"] == 5:
+            print("nwk")
             self.nwk_channel.setText("Kanał: " + str(json_obj["channel"]))
             self.nwk_pan_id.setText("Adres PAN: " + str(json_obj["pan_id"]))
             self.nwk_ex_pan_id.setText("Adres rozszerzony: " + str(json_obj["extended_pan_id"]))
         # transmision data
         elif json_obj["information_type"] == 6:
+            print("transmission")
             self.transmission_list.clear()
             for obj in json_obj['arr']:
                 text = ""
@@ -334,40 +339,28 @@ class MyMainWindow(QMainWindow):
         self.layout.addLayout(layout)
 
     def update_window(self):
-        self.get_transmission_data()
-        print("u1")
-        self.get_msg_settings()
-        print("u2")
-        self.get_tables()
-        print("u3")
-        self.get_topology()
-        print("u4")
-        self.get_nwk_data()
-        print("u5")
-        self.get_cca_data()
-        print("u6")
+        request = {
+            "request_type": 13
+        }
+        self.ser.write(json.dumps(request).encode("utf-8"))
 
     def get_nwk_data(self):
         request = {
             "request_type": 7
         }
         self.ser.write(json.dumps(request).encode("utf-8"))
-        time.sleep(0.1)
 
     def get_cca_data(self):
         request = {
             "request_type": 2
         }
-        time.sleep(0.05)
         self.ser.write(json.dumps(request).encode("utf-8"))
 
     def get_msg_settings(self):
-        time.sleep(0.05)
         request = {
             "request_type": 3
         }
-        self.ser.write(json.dumps(request).encode("utf-8"))
-        time.sleep(0.05)
+        self.ser.writelines([json.dumps(request).encode("utf-8")])
 
     def get_tables(self):
         request = {
