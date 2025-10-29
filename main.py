@@ -48,7 +48,7 @@ class MyMainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.ser = serial.Serial("COM4", 115200, rtscts=False)
+        self.ser = serial.Serial("COM24", 115200, rtscts=False)
         print("0")
         self.setWindowTitle("Ustawienia koordynatora")
         self.layout = QHBoxLayout()
@@ -72,6 +72,7 @@ class MyMainWindow(QMainWindow):
         self.transmission_list = QListWidget()
         self.neighbours_table_list = QListWidget()
         self.routes_table_list = QListWidget()
+        self.route_records_table_list = QListWidget()
 
         request = dict()
         request["request_type"] = 5
@@ -180,7 +181,15 @@ class MyMainWindow(QMainWindow):
             for route in json_obj['routes']:
                 text = "  Adres: " + route["dest_addr"] + "\n"
                 text += "  Następny węzeł: " + route['next_hop'] + "\n"
+                text += "  Flagi: " + str(route["flags"]) + "\n"
                 item = QListWidgetItem(self.routes_table_list)
+                item.setText(text)
+            self.route_records_table_list.clear()
+            for route_record in json_obj["route_records"]:
+                text = "  Adres docelowy: " + route_record["dest_addr"] + "\n"
+                text += "   Wygaśnięcie: " + str(route_record["expiry"]) + "\n"
+                text += "   Ścieżka: " + str(route_record["path"]) + "\n"
+                item = QListWidgetItem(self.route_records_table_list)
                 item.setText(text)
         # parametry nwk
         elif json_obj["information_type"] == 5:
@@ -212,6 +221,7 @@ class MyMainWindow(QMainWindow):
             print("informacja z poza zakresu")
 
     def read_and_handle(self):
+        i = 0
         while True:
             try:
                 line = self.ser.readline()
@@ -219,6 +229,11 @@ class MyMainWindow(QMainWindow):
             except serial.SerialException:
                 self.ser.close()
                 self.close()
+                return
+            i += 1
+            if i == 20000 and self.ser.writable():
+                self.update_window()
+                i = 0
 
     def attach_transmission_layout(self):
         layout = QVBoxLayout()
@@ -314,10 +329,13 @@ class MyMainWindow(QMainWindow):
         layout.addWidget(header_lable)
         neighbours_table_label = QLabel("Sąsiedzi koordynatora:")
         routes_table_label = QLabel("Trasy koordynatora:")
+        route_record_table_label = QLabel("Trasy MTO koordynatora:")
         layout.addWidget(neighbours_table_label)
         layout.addWidget(self.neighbours_table_list)
         layout.addWidget(routes_table_label)
         layout.addWidget(self.routes_table_list)
+        layout.addWidget(route_record_table_label)
+        layout.addWidget(self.route_records_table_list)
         button = QPushButton()
         button.setText("Ściągnij aktualne dane")
         button.pressed.connect(self.update_window)
@@ -360,42 +378,15 @@ class MyMainWindow(QMainWindow):
         }
         self.ser.write(json.dumps(request).encode("utf-8"))
 
-    def get_nwk_data(self):
-        request = {
-            "request_type": 7
-        }
-        self.ser.write(json.dumps(request).encode("utf-8"))
-
     def get_cca_data(self):
         request = {
             "request_type": 2
         }
         self.ser.write(json.dumps(request).encode("utf-8"))
 
-    def get_msg_settings(self):
-        request = {
-            "request_type": 3
-        }
-        self.ser.writelines([json.dumps(request).encode("utf-8")])
-
     def get_tables(self):
         request = {
             "request_type": 6,
-        }
-        self.ser.write(json.dumps(request).encode("utf-8"))
-        time.sleep(0.1)
-
-    def get_transmission_data(self):
-        time.sleep(0.1)
-        request = {
-            "request_type": 8,
-        }
-
-        self.ser.write(json.dumps(request).encode("utf-8"))
-
-    def get_topology(self):
-        request = {
-            "request_type": 1,
         }
         self.ser.write(json.dumps(request).encode("utf-8"))
         time.sleep(0.1)
@@ -446,6 +437,12 @@ class MyMainWindow(QMainWindow):
         msg = json.dumps(request).encode("utf-8")
         if self.ser.writable():
             self.ser.write(msg)
+
+    def get_nwk_data(self):
+        request = {
+            "request_type": 7
+        }
+        self.ser.write(json.dumps(request).encode("utf-8"))
 
 
 app = QApplication(sys.argv)
