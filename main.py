@@ -8,7 +8,7 @@ from PyQt5.QtGui import QColor, QPalette
 from PyQt5.QtWidgets import (QApplication, QWidget, QMainWindow, QLabel,
                              QPushButton, QVBoxLayout, QLineEdit, QHBoxLayout,
                              QDialog, QScrollArea, QListWidget, QListWidgetItem,
-                             QListView)
+                             QGroupBox)
 
 
 request_types = {
@@ -48,7 +48,7 @@ class MyMainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.ser = serial.Serial("COM24", 115200, rtscts=False)
+        self.ser = serial.Serial("COM4", 115200, rtscts=False)
         print("0")
         self.setWindowTitle("Ustawienia koordynatora")
         self.layout = QHBoxLayout()
@@ -61,7 +61,7 @@ class MyMainWindow(QMainWindow):
         self.delay_edit = QLineEdit()
         self.tx_power_edit = QLineEdit()
         self.payload_size_edit = QLineEdit()
-        self.tables_label = QLabel()
+
         self.topology_label = QLabel()
         self.nwk_ex_pan_id = QLabel()
         self.nwk_pan_id = QLabel()
@@ -70,6 +70,8 @@ class MyMainWindow(QMainWindow):
         self.transmission_label = QLabel()
         self.topology_list = QListWidget()
         self.transmission_list = QListWidget()
+        self.neighbours_table_list = QListWidget()
+        self.routes_table_list = QListWidget()
 
         request = dict()
         request["request_type"] = 5
@@ -106,8 +108,8 @@ class MyMainWindow(QMainWindow):
 
     def handle_response(self, json_str):
         json_obj = json.loads(json_str.strip(b'\n'))
-        # text = json.dumps(json_obj, skipkeys=True, indent=2)
-        # print(text)
+        text = json.dumps(json_obj, skipkeys=True, indent=2)
+        print(text)
         # błąd
         if json_obj["information_type"] == 255:
             dlg = QDialog()
@@ -163,20 +165,23 @@ class MyMainWindow(QMainWindow):
         # tablice
         elif json_obj["information_type"] == 4:
             print("tables")
-            text = "Dane sąsiadów koordynatora:\n"
+            self.neighbours_table_list.clear()
             for neighbour in json_obj["neighbors"]:
-                text += " Adres ieee: " + neighbour["ieee_addr"] + "\n"
+                text = " Adres ieee: " + neighbour["ieee_addr"] + "\n"
                 text += "   Adres krótki: " + neighbour["short_addr"] + "\n"
                 text += "   Typ urzadzenia: " + device_types[neighbour["device_type"]] + "\n"
                 text += "   Typ relacji: " + relationship_type[neighbour["relationship"]] + "\n"
                 text += "   RSSI: " + str(neighbour["rssi"]) + "\n"
                 text += "   LQI: " + str(neighbour["lqi"]) + "\n"
                 text += "   Koszt: " + str(neighbour["outgoing_cost"]) + "\n"
-            text += "Dane tras koordynatora\n"
+                item = QListWidgetItem(self.neighbours_table_list)
+                item.setText(text)
+            self.routes_table_list.clear()
             for route in json_obj['routes']:
-                text += "  Adres: " + route["dest_addr"] + "\n"
+                text = "  Adres: " + route["dest_addr"] + "\n"
                 text += "  Następny węzeł: " + route['next_hop'] + "\n"
-            self.tables_label.setText(text)
+                item = QListWidgetItem(self.routes_table_list)
+                item.setText(text)
         # parametry nwk
         elif json_obj["information_type"] == 5:
             print("nwk")
@@ -208,8 +213,12 @@ class MyMainWindow(QMainWindow):
 
     def read_and_handle(self):
         while True:
-            line = self.ser.readline()
-            self.handle_response(line)
+            try:
+                line = self.ser.readline()
+                self.handle_response(line)
+            except serial.SerialException:
+                self.ser.close()
+                self.close()
 
     def attach_transmission_layout(self):
         layout = QVBoxLayout()
@@ -280,7 +289,7 @@ class MyMainWindow(QMainWindow):
 
     def attach_topology(self):
         area = QScrollArea()
-        area.setMinimumWidth(220)
+        area.setMinimumWidth(250)
         area.setAlignment(Qt.AlignTop)
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignTop)
@@ -298,10 +307,17 @@ class MyMainWindow(QMainWindow):
     def attach_tables(self):
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignTop)
+
         self.get_tables()
         header_lable = QLabel("Tablice")
+        header_lable.setMinimumWidth(280)
         layout.addWidget(header_lable)
-        layout.addWidget(self.tables_label)
+        neighbours_table_label = QLabel("Sąsiedzi koordynatora:")
+        routes_table_label = QLabel("Trasy koordynatora:")
+        layout.addWidget(neighbours_table_label)
+        layout.addWidget(self.neighbours_table_list)
+        layout.addWidget(routes_table_label)
+        layout.addWidget(self.routes_table_list)
         button = QPushButton()
         button.setText("Ściągnij aktualne dane")
         button.pressed.connect(self.update_window)
@@ -440,4 +456,3 @@ window.show()
 app.exec()
 
 window.ser.close()
-
