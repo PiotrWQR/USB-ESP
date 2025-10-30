@@ -64,6 +64,7 @@ class MyMainWindow(QMainWindow):
         self.transmission_label = QLabel()
         self.topology_list = QListWidget()
         self.transmission_list = QListWidget()
+        self.transmission_list2 = QListWidget()
         self.neighbours_table_list = QListWidget()
         self.routes_table_list = QListWidget()
         self.route_records_table_list = QListWidget()
@@ -92,6 +93,7 @@ class MyMainWindow(QMainWindow):
         self.attach_tables()
         print("5")
         self.attach_transmission_layout()
+        self.attach_transmission_layout2()
         container = QWidget()
         container.setLayout(self.layout)
         self.setCentralWidget(container)
@@ -199,7 +201,6 @@ class MyMainWindow(QMainWindow):
             self.nwk_channel.setText("Kanał: " + str(json_obj["channel"]))
             self.nwk_pan_id.setText("Adres PAN: " + str(json_obj["pan_id"]))
             self.nwk_ex_pan_id.setText("Adres rozszerzony: " + str(json_obj["extended_pan_id"]))
-            
         # transmision data
         elif json_obj["information_type"] == 6:
             print("transmission")
@@ -220,6 +221,7 @@ class MyMainWindow(QMainWindow):
                     text += (" Czas rekonwergencji: " + str(obj["recon_time"]) + '\n\n')
                 item = QListWidgetItem(self.transmission_list)
                 item.setText(text)
+        # skan kanałow
         elif json_obj["information_type"] == 7:
             if "status" in json_obj:
                 self.nwk_energy_scan.setText("Wyniki skanu energetycznego: błąd")
@@ -231,6 +233,16 @@ class MyMainWindow(QMainWindow):
             tx+= "Wszystkich transmisji: " + str(energy_scan["total_transmission"]) + "\n"
             tx+= "Nieudanych transmisji: " + str(energy_scan["transmission_failures"]) + "\n"
             self.nwk_energy_scan.setText("Wyniki skanu energetycznego: " + tx)
+        #dane pojedyńczego pingu
+        elif json_obj["information_type"] == 8:
+            text = "Numer pingu: " + str(json_obj["ping_num"]) + "\n"
+            text += "Indykator od " + str(json_obj["addr"]) + " numer: " \
+                + str(json_obj["seq_num"]) + "\n"
+            text += "Ścieżka: " + str(json_obj["path"]) + "\n"
+            self.f.write(text)
+            item = QListWidgetItem()
+            item.setText(text)
+            self.transmission_list2.addItem(item)
         else:
             print("informacja z poza zakresu")
 
@@ -258,6 +270,24 @@ class MyMainWindow(QMainWindow):
         area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         area.setWidgetResizable(True)
         area.setWidget(self.transmission_list)
+        layout.addWidget(area)
+        button = QPushButton("Wyczyść tablice transmsji")
+        button.clicked.connect(self.clear_transmission)
+        layout.addWidget(button)
+        self.layout.addLayout(layout)
+
+    def attach_transmission_layout2(self):
+        layout = QVBoxLayout()
+        area = QScrollArea()
+        area.setMinimumWidth(220)
+        area.setAlignment(Qt.AlignTop)
+        header_label = QLabel("Dane transmisji              ")
+        layout.setAlignment(Qt.AlignTop)
+        layout.addWidget(header_label)
+        area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        area.setWidgetResizable(True)
+        area.setWidget(self.transmission_list2)
         layout.addWidget(area)
         button = QPushButton("Wyczyść tablice transmsji")
         button.clicked.connect(self.clear_transmission)
@@ -421,7 +451,6 @@ class MyMainWindow(QMainWindow):
         request['device_addr'] = int(self.device_addr_edit.text(), 16)
         request['dest_addr'] = int(self.dest_addr_edit.text(), 16)
         request['delay_ms'] = int(self.delay_edit.text())
-        request['repeats'] = int(self.repeats_edit.text())
         request['payload_size'] = int(self.payload_size_edit.text())
         request['tx_power'] = int(self.tx_power_edit.text())
         request_json = json.dumps(request).encode("utf-8")
