@@ -1,0 +1,3 @@
+  Adres docelowy: 0xe609
+   Wygaœniêcie: 0
+   Œcie¿ka: ['0xe71b']

@@ -37,16 +37,6 @@ relationship_type = {
 }
 basewidth = 210
 
-
-class Color(QWidget):
-    def __init__(self, color):
-        super().__init__()
-        self.setAutoFillBackground(True)
-        palette = self.palette()
-        palette.setColor(QPalette.ColorRole.Window, QColor(color))
-        self.setPalette(palette)
-
-
 class MyMainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -76,7 +66,7 @@ class MyMainWindow(QMainWindow):
         self.neighbours_table_list = QListWidget()
         self.routes_table_list = QListWidget()
         self.route_records_table_list = QListWidget()
-
+        
         request = dict()
         request["request_type"] = 5
         request['dest_addr'] = 0
@@ -85,7 +75,7 @@ class MyMainWindow(QMainWindow):
         request['payload_size'] = 20
         request_json = json.dumps(request).encode("utf-8")
         self.ser.write(request_json)
-
+    
         time_now = now.strftime("%Y%m%d%H%M%S")
         self.f = open("route_record" + time_now + ".txt", "x")
 
@@ -162,7 +152,7 @@ class MyMainWindow(QMainWindow):
             self.bemax_edit.setText(str(json_obj['csma_max_be']))
             self.retries_edit.setText(str(json_obj['csma_max_backoffs']))
         # ustawienia wiadomości
-        elif json_obj["information_type"] == 3:  # transsmision settings
+        elif json_obj["information_type"] == 3:
             print("settings")
             self.repeats_edit.setText(str(json_obj['repeats']))
             self.dest_addr_edit.setText(str(json_obj['dest_addr_str']))
