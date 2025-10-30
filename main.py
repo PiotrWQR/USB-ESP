@@ -21,7 +21,6 @@ request_types = {
     "none": 0,
     "get_topology": 1
 }
-now = datetime.now()
 device_types = {
     0: "koordynator",
     1: "router",
@@ -36,6 +35,7 @@ relationship_type = {
     5: "nieautoryzowane dziecko"
 }
 basewidth = 210
+now = datetime.now()
 
 class MyMainWindow(QMainWindow):
     def __init__(self):
@@ -60,6 +60,7 @@ class MyMainWindow(QMainWindow):
         self.nwk_pan_id = QLabel()
         self.nwk_channel = QLabel()
         self.address = QLabel()
+        self.nwk_energy_scan = QLabel()
         self.transmission_label = QLabel()
         self.topology_list = QListWidget()
         self.transmission_list = QListWidget()
@@ -198,6 +199,7 @@ class MyMainWindow(QMainWindow):
             self.nwk_channel.setText("Kanał: " + str(json_obj["channel"]))
             self.nwk_pan_id.setText("Adres PAN: " + str(json_obj["pan_id"]))
             self.nwk_ex_pan_id.setText("Adres rozszerzony: " + str(json_obj["extended_pan_id"]))
+            
         # transmision data
         elif json_obj["information_type"] == 6:
             print("transmission")
@@ -218,23 +220,31 @@ class MyMainWindow(QMainWindow):
                     text += (" Czas rekonwergencji: " + str(obj["recon_time"]) + '\n\n')
                 item = QListWidgetItem(self.transmission_list)
                 item.setText(text)
+        elif json_obj["information_type"] == 7:
+            if "status" in json_obj:
+                self.nwk_energy_scan.setText("Wyniki skanu energetycznego: błąd")
+                return
+            energy_scan = json_obj["energy_scan_results"]
+            tx = ""
+            for value in energy_scan["energy_values"]:
+                tx +=  str(value['channel']) + " :" + str(value['energy_value']) + "\n"
+            tx+= "Wszystkich transmisji: " + str(energy_scan["total_transmission"]) + "\n"
+            tx+= "Nieudanych transmisji: " + str(energy_scan["transmission_failures"]) + "\n"
+            self.nwk_energy_scan.setText("Wyniki skanu energetycznego: " + tx)
         else:
             print("informacja z poza zakresu")
 
     def read_and_handle(self):
-        i = 0
+        print("6")
         while True:
             try:
                 line = self.ser.readline()
                 self.handle_response(line)
             except serial.SerialException:
+                print("Error in loop")
                 self.ser.close()
                 self.close()
                 return
-            i += 1
-            if i == 20000 and self.ser.writable():
-                self.update_window()
-                i = 0
 
     def attach_transmission_layout(self):
         layout = QVBoxLayout()
@@ -263,6 +273,7 @@ class MyMainWindow(QMainWindow):
         layout.addWidget(self.nwk_pan_id)
         layout.addWidget(self.nwk_ex_pan_id)
         layout.addWidget(self.nwk_channel)
+        layout.addWidget(self.nwk_energy_scan)
         button1 = QPushButton("Otwórz sieć")
         button1.clicked.connect(self.open_network)
         button2 = QPushButton("Resetuj sieć")
