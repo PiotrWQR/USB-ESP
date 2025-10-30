@@ -2,14 +2,16 @@ import sys
 import time
 import threading
 import json
+
+from datetime import datetime
+
 import serial
+from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, QTimer, QStringListModel, QModelIndex, QPersistentModelIndex
 from PyQt5.QtGui import QColor, QPalette
 from PyQt5.QtWidgets import (QApplication, QWidget, QMainWindow, QLabel,
                              QPushButton, QVBoxLayout, QLineEdit, QHBoxLayout,
-                             QDialog, QScrollArea, QListWidget, QListWidgetItem,
-                             QGroupBox)
-
+                             QDialog, QScrollArea, QListWidget, QListWidgetItem)
 
 request_types = {
     "set_cca": 4,
@@ -19,6 +21,7 @@ request_types = {
     "none": 0,
     "get_topology": 1
 }
+now = datetime.now()
 device_types = {
     0: "koordynator",
     1: "router",
@@ -82,6 +85,9 @@ class MyMainWindow(QMainWindow):
         request['payload_size'] = 20
         request_json = json.dumps(request).encode("utf-8")
         self.ser.write(request_json)
+
+        time_now = now.strftime("%Y%m%d%H%M%S")
+        self.f = open("route_record" + time_now + ".txt", "x")
 
         print("0.5")
         self.attach_cca_layout()
@@ -175,8 +181,12 @@ class MyMainWindow(QMainWindow):
                 text += "   RSSI: " + str(neighbour["rssi"]) + "\n"
                 text += "   LQI: " + str(neighbour["lqi"]) + "\n"
                 text += "   Koszt: " + str(neighbour["outgoing_cost"]) + "\n"
-                item = QListWidgetItem(self.neighbours_table_list)
+                item = QListWidgetItem()
+                # item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+                item.setFlags(item.flags() | Qt.ItemIsSelectable)
+                # item.setCheckState(QtCore.Qt.CheckState.Unchecked)
                 item.setText(text)
+                self.neighbours_table_list.addItem(item)
             self.routes_table_list.clear()
             for route in json_obj['routes']:
                 text = "  Adres: " + route["dest_addr"] + "\n"
@@ -191,6 +201,7 @@ class MyMainWindow(QMainWindow):
                 text += "   Ścieżka: " + str(route_record["path"]) + "\n"
                 item = QListWidgetItem(self.route_records_table_list)
                 item.setText(text)
+                self.f.write(text)
         # parametry nwk
         elif json_obj["information_type"] == 5:
             print("nwk")
@@ -452,4 +463,5 @@ window.show()
 
 app.exec()
 
+window.f.close()
 window.ser.close()
