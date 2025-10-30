@@ -49,7 +49,7 @@ class MyMainWindow(QMainWindow):
         self.bemin_edit = QLineEdit()
         self.bemax_edit = QLineEdit()
         self.retries_edit = QLineEdit()
-        self.repeats_edit = QLineEdit()
+        self.device_addr_edit = QLineEdit()
         self.dest_addr_edit = QLineEdit()
         self.delay_edit = QLineEdit()
         self.tx_power_edit = QLineEdit()
@@ -77,16 +77,16 @@ class MyMainWindow(QMainWindow):
         self.ser.write(request_json)
     
         time_now = now.strftime("%Y%m%d%H%M%S")
-        self.f = open("route_record" + time_now + ".txt", "x")
+        self.f = open("files/route_record" + time_now + ".txt", "x")
 
         print("0.5")
-        self.attach_cca_layout()
+        # self.attach_cca_layout()
         print("1")
         self.attach_sending_settings_window()
         print("2")
         self.attach_nwk_layout()
         print("3")
-        self.attach_topology()
+        #self.attach_topology()
         print("4")
         self.attach_tables()
         print("5")
@@ -154,7 +154,7 @@ class MyMainWindow(QMainWindow):
         # ustawienia wiadomości
         elif json_obj["information_type"] == 3:
             print("settings")
-            self.repeats_edit.setText(str(json_obj['repeats']))
+            self.device_addr_edit.setText("")
             self.dest_addr_edit.setText(str(json_obj['dest_addr_str']))
             self.delay_edit.setText(str(json_obj['delay_ms']))
             self.payload_size_edit.setText(str(json_obj['payload_size']))
@@ -345,13 +345,14 @@ class MyMainWindow(QMainWindow):
 
     def attach_sending_settings_window(self):
         layout = QVBoxLayout()
+        
         header_label = QLabel("Ustawienia żądań")
         header_label.setFixedWidth(basewidth)
-        repeats_label = QLabel("Powtórzenia")
-        dest_addr_label = QLabel("Adres docelowy (szesnastkowy)")
-        delay_label = QLabel("Przerwa między żądaniami(ms)")
-        payload_size_label = QLabel("Rozmiar ładunk(bajty)")
-        tx_power_label = QLabel("Moc sygnału(dBm)")
+        device_addr_label = QLabel("Adres urządzenia (szesnastkowy): ")
+        dest_addr_label = QLabel("Adres docelowy transmisji (szesnastkowy): ")
+        delay_label = QLabel("Przerwa między żądaniami(ms): ")
+        payload_size_label = QLabel("Rozmiar ładunk(bajty): ")
+        tx_power_label = QLabel("Moc sygnału(dBm): ")
         header_label.setAlignment(Qt.AlignTop)
 
         layout.setAlignment(Qt.AlignTop)
@@ -359,8 +360,8 @@ class MyMainWindow(QMainWindow):
         button.setText("Zatwierź nowe parametry")
         button.pressed.connect(self.set_sending_settings)
         layout.addWidget(header_label)
-        layout.addWidget(repeats_label)
-        layout.addWidget(self.repeats_edit)
+        layout.addWidget(device_addr_label)
+        layout.addWidget(self.device_addr_edit)
         layout.addWidget(dest_addr_label)
         layout.addWidget(self.dest_addr_edit)
         layout.addWidget(delay_label)
@@ -406,6 +407,7 @@ class MyMainWindow(QMainWindow):
     def set_sending_settings(self):
         request = dict()
         request["request_type"] = 5
+        request['device_addr'] = int(self.device_addr_edit.text(), 16)
         request['dest_addr'] = int(self.dest_addr_edit.text(), 16)
         request['delay_ms'] = int(self.delay_edit.text())
         request['repeats'] = int(self.repeats_edit.text())
