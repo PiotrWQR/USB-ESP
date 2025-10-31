@@ -290,7 +290,7 @@ class MyMainWindow(QMainWindow):
         area.setWidgetResizable(True)
         area.setWidget(self.transmission_list2)
         layout.addWidget(area)
-        button = QPushButton("Wyczyść tablice transmsji")
+        button = QPushButton("Wyczyść tablice transmsji i zpisz plik")
         button.clicked.connect(self.reset_transmision_write)
         layout.addWidget(button)
         self.layout.addLayout(layout)
@@ -390,7 +390,7 @@ class MyMainWindow(QMainWindow):
         
         header_label = QLabel("Ustawienia żądań")
         header_label.setFixedWidth(basewidth)
-        device_addr_label = QLabel("Adres urządzenia (szesnastkowy): ")
+        device_addr_label = QLabel("Adres urządzenia do konfiguracji (szesnastkowy): ")
         dest_addr_label = QLabel("Adres docelowy transmisji (szesnastkowy): ")
         delay_label = QLabel("Przerwa między żądaniami(ms): ")
         payload_size_label = QLabel("Rozmiar ładunk(bajty): ")
