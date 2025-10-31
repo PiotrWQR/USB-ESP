@@ -92,7 +92,7 @@ class MyMainWindow(QMainWindow):
         print("4")
         self.attach_tables()
         print("5")
-        self.attach_transmission_layout()
+        # self.attach_transmission_layout()
         self.attach_transmission_layout2()
         container = QWidget()
         container.setLayout(self.layout)
@@ -109,7 +109,7 @@ class MyMainWindow(QMainWindow):
     def handle_response(self, json_str):
         json_obj = json.loads(json_str.strip(b'\n'))
         text = json.dumps(json_obj, skipkeys=True, indent=2)
-        print(text)
+        # print(text)
         # błąd
         if json_obj["information_type"] == 255:
             dlg = QDialog()
@@ -169,8 +169,9 @@ class MyMainWindow(QMainWindow):
             for neighbour in json_obj["neighbors"]:
                 text = " Adres ieee: " + neighbour["ieee_addr"] + "\n"
                 text += "   Adres krótki: " + neighbour["short_addr"] + "\n"
-                text += "   Typ urzadzenia: " + device_types[neighbour["device_type"]] + "\n"
-                text += "   Typ relacji: " + relationship_type[neighbour["relationship"]] + "\n"
+                #text += "   Typ urzadzenia: " + device_types[neighbour["device_type"]] + "\n"
+                #text += "   Typ relacji: " + relationship_type[neighbour["relationship"]] + "\n"
+                text += "   Odległość: " + str(neighbour["depth"]) + "\n"
                 text += "   RSSI: " + str(neighbour["rssi"]) + "\n"
                 text += "   LQI: " + str(neighbour["lqi"]) + "\n"
                 text += "   Koszt: " + str(neighbour["outgoing_cost"]) + "\n"
@@ -236,9 +237,9 @@ class MyMainWindow(QMainWindow):
         #dane pojedyńczego pingu
         elif json_obj["information_type"] == 8:
             text = "Numer pingu: " + str(json_obj["ping_num"]) + "\n"
-            text += "Indykator od " + str(json_obj["addr"]) + " numer: " \
+            text += "Indykator od " + hex(json_obj["addr"]) + " numer: " \
                 + str(json_obj["seq_num"]) + "\n"
-            text += "Ścieżka: " + str(json_obj["path"]) + "\n"
+            text += "Ścieżka: " + str(json_obj["path"]) + "\n\n"
             self.f.write(text)
             item = QListWidgetItem()
             item.setText(text)
@@ -290,7 +291,7 @@ class MyMainWindow(QMainWindow):
         area.setWidget(self.transmission_list2)
         layout.addWidget(area)
         button = QPushButton("Wyczyść tablice transmsji")
-        button.clicked.connect(self.clear_transmission)
+        button.clicked.connect(self.reset_transmision_write)
         layout.addWidget(button)
         self.layout.addLayout(layout)
 
@@ -486,6 +487,12 @@ class MyMainWindow(QMainWindow):
             "request_type": 7
         }
         self.ser.write(json.dumps(request).encode("utf-8"))
+
+    def reset_transmision_write(self):
+        self.transmission_list2.clear()
+        self.f.close()
+        time_now = now.strftime("%Y%m%d%H%M%S")
+        self.f = open("files/route_record" + time_now + ".txt", "x")
 
 
 app = QApplication(sys.argv)
