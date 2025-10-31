@@ -120,7 +120,7 @@ class MyMainWindow(QMainWindow):
                 print(json_obj['error_description'])
         # toplogy
         elif json_obj["information_type"] == 1:
-            print("topology")
+            #print("topology")
             self.topology_list.clear()
             self.ieee_list = []
             for rd in json_obj:
@@ -149,13 +149,13 @@ class MyMainWindow(QMainWindow):
                 item.setText(text)
         # cca
         elif json_obj['information_type'] == 2:
-            print("ca settings")
+            #print("ca settings")
             self.bemin_edit.setText(str(json_obj['csma_min_be']))
             self.bemax_edit.setText(str(json_obj['csma_max_be']))
             self.retries_edit.setText(str(json_obj['csma_max_backoffs']))
         # ustawienia wiadomości
         elif json_obj["information_type"] == 3:
-            print("settings")
+            #print("settings")
             self.device_addr_edit.setText("")
             self.dest_addr_edit.setText(str(json_obj['dest_addr_str']))
             self.delay_edit.setText(str(json_obj['delay_ms']))
@@ -163,7 +163,7 @@ class MyMainWindow(QMainWindow):
             self.tx_power_edit.setText(str(json_obj['tx_power']))
         # tablice
         elif json_obj["information_type"] == 4:
-            print("tables")
+            #print("tables")
             self.neighbours_table_list.clear()
             index = 1
             for neighbour in json_obj["neighbors"]:
@@ -185,7 +185,7 @@ class MyMainWindow(QMainWindow):
                 self.neighbours_table_list.addItem(item)
             self.routes_table_list.clear()
             for route in json_obj['routes']:
-                text += "  Adres: " + route["dest_addr"] + "\n"
+                text = "  Adres: " + route["dest_addr"] + "\n"
                 text += "  Następny węzeł: " + route['next_hop'] + "\n"
                 text += "  Flagi: " + str(route["flags"]) + "\n"
                 item = QListWidgetItem(self.routes_table_list)
@@ -200,13 +200,13 @@ class MyMainWindow(QMainWindow):
                 self.f.write(text)
         # parametry nwk
         elif json_obj["information_type"] == 5:
-            print("nwk")
+            #print("nwk")
             self.nwk_channel.setText("Kanał: " + str(json_obj["channel"]))
             self.nwk_pan_id.setText("Adres PAN: " + str(json_obj["pan_id"]))
             self.nwk_ex_pan_id.setText("Adres rozszerzony: " + str(json_obj["extended_pan_id"]))
         # transmision data
         elif json_obj["information_type"] == 6:
-            print("transmission")
+            #print("transmission")
             self.transmission_list.clear()
             for obj in json_obj['arr']:
                 text = ""
@@ -229,13 +229,12 @@ class MyMainWindow(QMainWindow):
             if "status" in json_obj:
                 self.nwk_energy_scan.setText("Wyniki skanu energetycznego: błąd")
                 return
-            energy_scan = json_obj["energy_scan_results"]
             tx = ""
-            for value in energy_scan["energy_values"]:
+            for value in json_obj["energy_values"]:
                 tx +=  str(value['channel']) + " :" + str(value['energy_value']) + "\n"
-            tx+= "Wszystkich transmisji: " + str(energy_scan["total_transmission"]) + "\n"
-            tx+= "Nieudanych transmisji: " + str(energy_scan["transmission_failures"]) + "\n"
-            self.nwk_energy_scan.setText("Wyniki skanu energetycznego: " + tx)
+            tx+= "Wszystkich transmisji: " + str(json_obj["total_transmission"]) + "\n"
+            tx+= "Nieudanych transmisji: " + str(json_obj["transmission_failures"]) + "\n"
+            self.nwk_energy_scan.setText("Wyniki skanu energetycznego: \n" + tx)
         #dane pojedyńczego pingu
         elif json_obj["information_type"] == 8:
             text = "Numer pingu: " + str(json_obj["ping_num"]) + "\n"
