@@ -35,7 +35,6 @@ relationship_type = {
     5: "nieautoryzowane dziecko"
 }
 basewidth = 210
-now = datetime.now()
 
 class MyMainWindow(QMainWindow):
     def __init__(self):
@@ -78,7 +77,7 @@ class MyMainWindow(QMainWindow):
         request_json = json.dumps(request).encode("utf-8")
         self.ser.write(request_json)
     
-        time_now = now.strftime("%Y%m%d%H%M%S")
+        time_now = datetime.now().strftime("%Y%m%d%H%M%S")
         self.f = open("files/route_record" + time_now + ".txt", "x")
 
         print("0.5")
@@ -166,8 +165,11 @@ class MyMainWindow(QMainWindow):
         elif json_obj["information_type"] == 4:
             print("tables")
             self.neighbours_table_list.clear()
+            index = 1
             for neighbour in json_obj["neighbors"]:
-                text = " Adres ieee: " + neighbour["ieee_addr"] + "\n"
+                text = "Indeks: " + str(index) + "\n"
+                index += 1
+                text += " Adres ieee: " + neighbour["ieee_addr"] + "\n"
                 text += "   Adres krótki: " + neighbour["short_addr"] + "\n"
                 #text += "   Typ urzadzenia: " + device_types[neighbour["device_type"]] + "\n"
                 #text += "   Typ relacji: " + relationship_type[neighbour["relationship"]] + "\n"
@@ -183,7 +185,7 @@ class MyMainWindow(QMainWindow):
                 self.neighbours_table_list.addItem(item)
             self.routes_table_list.clear()
             for route in json_obj['routes']:
-                text = "  Adres: " + route["dest_addr"] + "\n"
+                text += "  Adres: " + route["dest_addr"] + "\n"
                 text += "  Następny węzeł: " + route['next_hop'] + "\n"
                 text += "  Flagi: " + str(route["flags"]) + "\n"
                 item = QListWidgetItem(self.routes_table_list)
@@ -239,7 +241,11 @@ class MyMainWindow(QMainWindow):
             text = "Numer pingu: " + str(json_obj["ping_num"]) + "\n"
             text += "Indykator od " + hex(json_obj["addr"]) + " numer: " \
                 + str(json_obj["seq_num"]) + "\n"
-            text += "Ścieżka: " + str(json_obj["path"]) + "\n\n"
+            text += "Ścieżka: [" 
+            path  = json_obj["path"]
+            for addr in path:
+                text += hex(addr) + ", "
+            text += "]\n\n"
             self.f.write(text)
             item = QListWidgetItem()
             item.setText(text)
@@ -290,7 +296,7 @@ class MyMainWindow(QMainWindow):
         area.setWidgetResizable(True)
         area.setWidget(self.transmission_list2)
         layout.addWidget(area)
-        button = QPushButton("Wyczyść tablice transmsji i zpisz plik")
+        button = QPushButton("Wyczyść tablice transmsji i zapisz plik")
         button.clicked.connect(self.reset_transmision_write)
         layout.addWidget(button)
         self.layout.addLayout(layout)
@@ -491,7 +497,7 @@ class MyMainWindow(QMainWindow):
     def reset_transmision_write(self):
         self.transmission_list2.clear()
         self.f.close()
-        time_now = now.strftime("%Y%m%d%H%M%S")
+        time_now = datetime.now().strftime("%Y%m%d%H%M%S")
         self.f = open("files/route_record" + time_now + ".txt", "x")
 
 
