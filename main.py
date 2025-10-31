@@ -245,9 +245,9 @@ class MyMainWindow(QMainWindow):
             for addr in path:
                 text += hex(addr) + ", "
             text += "]\n"
-            if "route" in json_obj:
-                text += "Trasa:"+ hex(json_obj["route"])
-            text += "\n\n"
+            # if "route" in json_obj:
+            #     text += "Trasa:"+ hex(json_obj["route"])
+            text += "\n"
             self.f.write(text)
             item = QListWidgetItem()
             item.setText(text)
