@@ -231,7 +231,7 @@ class MyMainWindow(QMainWindow):
                 return
             tx = ""
             for value in json_obj["energy_values"]:
-                tx += "Kanał " + str(value['channel']) + ": " + str(value['energy_value']) + "dBm\n"
+                tx += "Kanał " + str(value['channel']) + ": " + str(value['energy_value']) + "\n"
             tx+= "\nWszystkich transmisji: " + str(json_obj["total_transmission"]) + "\n"
             tx+= "Nieudanych transmisji: " + str(json_obj["transmission_failures"]) + "\n"
             self.nwk_energy_scan.setText("Wyniki skanu energetycznego: \n" + tx)
