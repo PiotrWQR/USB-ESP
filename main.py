@@ -240,6 +240,7 @@ class MyMainWindow(QMainWindow):
             text = "Numer pingu: " + str(json_obj["ping_num"]) + "\n"
             text += "Indykator od " + hex(json_obj["addr"]) + " numer: " \
                 + str(json_obj["seq_num"]) + "\n"
+            text += "LQI: " + str(json_obj["lqi"]) + "\n"
             text += "Ścieżka: [" 
             path  = json_obj["path"]
             for addr in path:
