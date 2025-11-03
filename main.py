@@ -7,8 +7,7 @@ from datetime import datetime
 
 import serial
 from PyQt5 import QtCore
-from PyQt5.QtCore import Qt, QTimer, QStringListModel, QModelIndex, QPersistentModelIndex
-from PyQt5.QtGui import QColor, QPalette
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QApplication, QWidget, QMainWindow, QLabel,
                              QPushButton, QVBoxLayout, QLineEdit, QHBoxLayout,
                              QDialog, QScrollArea, QListWidget, QListWidgetItem)
@@ -241,13 +240,13 @@ class MyMainWindow(QMainWindow):
             text += "Indykator od " + hex(json_obj["addr"]) + " numer: " \
                 + str(json_obj["seq_num"]) + "\n"
             text += "LQI: " + str(json_obj["lqi"]) + "\n"
-            text += "Ścieżka: [" 
+            text += "Ścieżka dla trasowania MTO: [" 
             path  = json_obj["path"]
             for addr in path:
                 text += hex(addr) + ", "
             text += "]\n"
-            # if "route" in json_obj:
-            #     text += "Trasa:"+ hex(json_obj["route"])
+            if "route" in json_obj:
+                text += "Następny węzeł dla trasovania AODV: "+ hex(json_obj["route"])
             text += "\n"
             self.f.write(text)
             item = QListWidgetItem()
